@@ -1,15 +1,15 @@
 package main
 
 import (
+	"context"
 	"log"
 	"time"
-	"context"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/bson/primitive"
-
-
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -70,11 +70,48 @@ func main() {
 		}
 		var employees []Employee = make([]Employee,0)
 
-		cursor.All(c.Context(), &employees)
+		if err := cursor.All(c.Context(), &employees) err !=nil {
+			return c.Status(500).SendString(err.Error())
+		}
+
+		return c.JSON(employees)
+	})
+
+	app.Post("/employee", func(c *fiber.Ctx) error{
+		collection := mg.Db.Collection("employees")
+
+		employee := new(Employee)
+		if err:= c.BodyParser(employee) err != nil {
+			return c.Status(400).SendString(err.Error())
+		}
+
+		employee.ID = ""
+
+		 insertionResult,err := collection.InsertOne(c.Context(), employee)
+		 if err !=nil{
+			return c.Status(500).SendString(err.Error())
+		 }
+
+		filter := bson.D{{Key:"_id", Value := insertionResult.InsertedID}}
+		createdRecord := collection.FindOne(c.Context(), filter)
+
+		createdEmployee := &Employee{}
+		createdRecord.DecodeJSON(createdEmployee)
+
+		return c.Status(201).JSON(createdEmployee)
 
 	})
-	app.Post("/employee")
-	app.Put("/employee/:id")
+	
+	app.Put("/employee/:id", func(c *fiber.Ctx) error{
+		idParam := c.Params("id")
+		employeeID,err := primitive.ObjectIDFromHex(idParam)
+
+		if err !=nil {
+			return c.Status(400)
+		}
+		employee := new(Employee)
+	} )
+	
 	app.Delete("/employee/:id")
 
 }
