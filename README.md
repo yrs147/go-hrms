@@ -1,1 +1,1 @@
-# ho-hrms
+# Human Resource Management System in Golang
